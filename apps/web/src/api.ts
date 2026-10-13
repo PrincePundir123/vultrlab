@@ -9,8 +9,9 @@ let csrf='';
 export function setCsrf(value:string){csrf=value;}
 export async function api<T>(path:string, method='GET', body?:unknown):Promise<T>{
   const response=await fetch('/api/v1'+path,{method,credentials:'same-origin',headers:{...(body instanceof FormData?{}:{'Content-Type':'application/json'}),'X-CSRF-Token':csrf},body:body===undefined?undefined:body instanceof FormData?body:JSON.stringify(body)});
-  const value=await response.json();
   if(response.status===401 && path!=='/auth/login') window.dispatchEvent(new Event('skg-session-expired'));
+  let value;
+  try{value=await response.json();}catch{throw new Error(`Server returned HTTP ${response.status} without a valid API response. Check the connection and try again.`);}
   if(!response.ok) throw new Error(typeof value.error?.message==='string'?value.error.message:JSON.stringify(value.detail??value.error??value));
   return value as T;
 }
