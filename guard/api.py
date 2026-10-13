@@ -425,7 +425,10 @@ def export(job_id: str, format: str, user: User = Depends(auth.current_user)):
     with db() as s:
         job = owned(s, Job, job_id, user)
         if format == "json":
-            return Response(json.dumps(serialize_job(job), indent=2), media_type="application/json",
+            evidence = serialize_job(job)
+            evidence["events"] = [{"id": e.id, "kind": e.kind, "data": e.data, "created": e.created}
+                for e in s.scalars(select(JobEvent).where(JobEvent.job_id == job.id).order_by(JobEvent.id))]
+            return Response(json.dumps(evidence, indent=2), media_type="application/json",
                             headers={"Content-Disposition": f'attachment; filename="{job_id}.json"'})
         if format != "csv":
             raise HTTPException(404, "Unknown format")

@@ -208,7 +208,7 @@ class Runtime:
                     checked = verify_read(row["order_id"], observed, truth)
                 except httpx.HTTPError as exc:
                     status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else 0
-                    checked = {"status": "ACCESS_DENIED" if status in (401, 403) else "TRANSIENT_ERROR",
+                    checked = {"status": "ACCESS_DENIED" if status in (401, 403) else "TRANSIENT_ERROR" if status == 0 or status == 429 or status >= 500 else "EXECUTION_FAILED",
                                "verified": False, "reason": "Transport or independent verification unavailable"}
                 if checked["status"] != "TRANSIENT_ERROR" or attempt == 1:
                     break
@@ -216,6 +216,9 @@ class Runtime:
                                            "reason": checked["status"]})
                 self.checkpoint()
             if not checked["verified"]:
+                checks = checked.get("checks", {})
+                if checks and checks.get("evidence") is False and all(v for k, v in checks.items() if k != "evidence"):
+                    checked["status"] = "EVIDENCE_UNAVAILABLE"
                 changed = checked["status"] in ("PORTAL_CHANGED", "VALIDATION_FAILED")
                 if not baseline and changed:
                     transition(READ, "QUARANTINED", "Fresh execution failed required invariant")

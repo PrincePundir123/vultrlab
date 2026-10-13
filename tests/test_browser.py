@@ -107,8 +107,17 @@ async def test_timed_out_browser_write_is_found_without_resubmission(site):
         Step(action="fill", target="idempotency_key", value_from="idempotency_key"),
         Step(action="click", target="submit_request"), Step(action="read", target="receipt")])
     observed = await browser_run(origin, workflow, inputs, WRITE, True)
-    assert observed["status"] == "PORTAL_CHANGED"  # Browser timeout, not a claimed success.
+    assert observed["status"] == "TRANSIENT_ERROR"  # Timeout is not evidence of a layout change.
     persisted = truth.get("/requests/" + inputs["idempotency_key"]).json()
     assert persisted["found"]
     fresh = await browser_run(origin, read_workflow(), {"order_id": "ORD-104"})
     assert verify_write(inputs, persisted, bool(fresh["screenshots"]))["verified"]
+
+
+async def test_access_denial_is_not_layout_change(site):
+    origin, truth = site
+    truth.post("/scenario", json={"version":1,"access_denied":True}).raise_for_status()
+    observed = await browser_run(origin, read_workflow(), {"order_id":"ORD-102"})
+    assert observed["status"] == "ACCESS_DENIED"
+    minimal = await browser_run(origin, Workflow(steps=[Step(action="navigate")]), {"order_id":"ORD-102"})
+    assert minimal["status"] == "ACCESS_DENIED"

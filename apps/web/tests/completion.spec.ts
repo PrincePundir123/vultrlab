@@ -24,6 +24,10 @@ test('revalidate, compare versions, reject stale CSV, recover expired session an
   await expect(operation.getByText('contract.revalidated_from',{exact:true})).toBeVisible();
   await page.screenshot({path:'../../docs/screenshots/version-comparison.png',fullPage:true});
   await page.getByRole('navigation').getByRole('link',{name:'New task'}).click();
+  await page.getByRole('button',{name:'Try sample orders'}).click();
+  await expect(page.getByRole('cell',{name:'ORD-101',exact:true})).toBeVisible();
+  await expect(page.getByRole('cell',{name:'ORD-103',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Start verified execution'})).toBeEnabled();
   const upload=page.getByLabel('Order CSV');
   await upload.setInputFiles({name:'valid.csv',mimeType:'text/csv',buffer:Buffer.from('order_id,expected_delivery\nORD-102,2026-11-10\n')});
   await expect(page.getByRole('button',{name:'Start verified execution'})).toBeEnabled();

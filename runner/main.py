@@ -92,6 +92,8 @@ async def execute(spec: SandboxSpec, origin: str, executable: str | None = None)
                             result["fields"][await item.get_attribute("data-field")] = (await item.inner_text())[:1200]
                 result["trace"].append({"kind": "BROWSER_ACTION", "step": step.model_dump(),
                                         "duration_ms": round((time.monotonic() - begin) * 1000)})
+            if http_status >= 400:
+                result["status"] = classify_failure(http_status, result["trace"], "HTTP failure")
             result["targets"] = await page.locator("[data-target]").evaluate_all(
                 "els => els.slice(0,30).map(e => ({target:e.dataset.target, tag:e.tagName, text:(e.innerText || e.getAttribute('placeholder') || '').slice(0,150)}))")
             # Fixed source code only; never a model-controlled evaluate string.

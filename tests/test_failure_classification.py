@@ -40,3 +40,19 @@ async def test_read_retry_and_quarantine(client, monkeypatch, status, calls, sta
     with db() as s:
         assert s.get(Operation,READ).state==state
         assert s.get(Operation,WRITE).state==state
+
+
+async def test_missing_screenshot_preserves_operation(client, monkeypatch):
+    from guard import orchestration
+    definition={"steps":[{"action":"navigate"}]}
+    with db() as s:
+        s.add(Version(operation=READ,number=1,definition=definition,contract=contract(READ),digest=canonical_hash(definition)))
+        op=s.get(Operation,READ);op.state="ACTIVE";op.active_version=1;s.commit()
+    runtime=Runtime(Job(id="test",owner_id="test",kind="read",payload={"orders":[{"order_id":"ORD-101"}]}))
+    async def run(*args,**kwargs):return {"status":"OBSERVED","fields":{"order_id":"ORD-101","arrival":"Unknown","status":"Pending"}}
+    async def truth(*args):return {"found":True,"order":{"order_id":"ORD-101","arrival":None,"status":"Pending"}}
+    monkeypatch.setattr(runtime,"run",run)
+    monkeypatch.setattr(runtime,"record",lambda *args:None)
+    monkeypatch.setattr(orchestration,"portal_truth",truth)
+    assert (await runtime.read_orders())["status"]=="EVIDENCE_UNAVAILABLE"
+    with db() as s:assert s.get(Operation,READ).state=="ACTIVE"
