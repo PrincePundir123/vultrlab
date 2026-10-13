@@ -12,6 +12,7 @@ test('real UI approval submits through Docker and displays independently verifie
   await expect(page.getByRole('heading',{name:'Every action. Accounted for.'})).toBeVisible();
   page.on('dialog',dialog=>dialog.accept());
   await page.getByRole('navigation').getByRole('link',{name:'Operation library'}).click();
+  await expect(page.getByRole('heading',{name:'submit_delivery_request',exact:true})).toBeVisible();
   const review=page.getByRole('button',{name:'Review and activate latest write version'});
   if(await review.count()){
     await review.click();
@@ -19,7 +20,7 @@ test('real UI approval submits through Docker and displays independently verifie
   }
   await page.getByRole('navigation').getByRole('link',{name:'Approval center'}).click();
   await page.getByLabel('Order ID',{exact:true}).fill('ORD-104');
-  const message='UI acceptance: please confirm delivery for ORD-104.';
+  const message=`UI acceptance ${Date.now()}: please confirm delivery for ORD-104.`;
   await page.getByLabel('Exact message').fill(message);
   await page.getByRole('button',{name:'Create approval preview'}).click();
   const card=page.locator('.panel').filter({has:page.locator('blockquote',{hasText:message})}).first();
