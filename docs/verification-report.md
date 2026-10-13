@@ -92,3 +92,36 @@ and administrator controls remain protected in both the API and the UI.
 
 These checks do not add live Vultr credentials, email verification, password recovery
 or enterprise tenant isolation. The shared supplier catalog remains synthetic.
+
+
+## Five priority improvements (2026-10-13)
+
+Implemented local live-provider acceptance preparation, failure classification,
+sample-order onboarding/readiness, linked recovery evidence and controlled paired
+benchmarks. The user requested local preparation because Vultr infrastructure is
+not available yet. See hackathon-readiness.md for remaining submission evidence.
+
+Validation of the final changes:
+
+- Non-browser backend suite: **67 passed**, four browser cases deselected.
+- Real Chrome browser cases: **four passed across two focused batches**. Covered
+  reads, writes, changed selectors, observed learning/repair with a clearly labeled
+  test-only provider, access denial, and timeout reconciliation without resubmission.
+  A preceding run exposed a navigation timing classification bug; the fix checks
+  target presence before the action, and both affected and ordinary browser paths
+  were rerun successfully. These learning/repair cases do not prove live AI behavior.
+- Production TypeScript/Vite builds passed on Windows and in Docker.
+- Full Docker/Chrome UI suite: **3 passed in 57.1 seconds**. Covered sample order
+  loading, readiness, immutable validation, stale CSV rejection, session expiry,
+  approved submission/receipt, self-signup and private cross-account task access.
+- Final service/browser images rebuilt; localhost health returned `status: ok`.
+  Existing database volumes and operator credentials were retained.
+- Tracked source scan found no configured private environment secret values.
+- Live acceptance preflight correctly reports missing Vultr key/chat/vision model
+  IDs, no public HTTPS URL and no independently verified cloud execution.
+
+No real-provider benchmark, authenticated inference/vision acceptance, public Vultr
+deployment or new recorded submission video was performed. Benchmark unit tests use
+test doubles only inside tests. Runtime benchmarks require actual provider settings
+and consume real tokens. JSON exports retain partial timeline measurements and
+candidate evidence; missing trials or usage are never represented as success/zero.

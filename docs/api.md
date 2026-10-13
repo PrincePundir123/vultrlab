@@ -53,3 +53,21 @@ an authenticated HttpOnly session with a CSRF token. The server fixes the role t
 Public users cannot opt into operator/admin roles. Mutations require session CSRF
 validation after registration. The shared synthetic portal is not a private supplier
 catalog per tenant; task histories and evidence are private per account.
+
+
+## Recovery and comparisons
+
+- `POST /operations/get_order_status/repair?source_job_id=<id>` optionally links
+  repair to the caller's own `PORTAL_CHANGED` read task. Other owners return 404;
+  incompatible source states return 409. Administrator privileges are required.
+- `POST /benchmarks` (administrator + CSRF) accepts `pairs` (2–10) and `orders`
+  (1–3 standard order inputs). Missing real Vultr configuration returns 409.
+  Results use ordinary private task routes and exports. Learning and every trial
+  emit evidence events. A benchmark has a one-hour deadline and is cancellable.
+- `GET /tasks/{id}/export/json` now includes ordered persisted events as well as
+  task input/result; this retains partial benchmark and rejected candidate evidence.
+
+Read failures distinguish `ACCESS_DENIED`, `REJECTED_BY_POLICY`, `TRANSIENT_ERROR`,
+`EXECUTION_FAILED`, `EVIDENCE_UNAVAILABLE` and `PORTAL_CHANGED`. Only temporary
+read failures receive one bounded retry. Confirmed selector/invariant failures
+quarantine operations; writes still require independent reconciliation.

@@ -107,3 +107,17 @@ later sessions. Operator accounts use the same sign-in form.
 New users can run read-only supplier checks and access their own task histories.
 Supplier submissions are limited to controlled operators; workflow administration
 remains admin-only. Signup does not grant paid inference or administrative access.
+
+
+## Priority improvements
+
+- New task includes sample orders and checks current worker/operation readiness.
+- Transient reads retry once. Access denials, policy blocks, missing evidence and
+  confirmed portal changes are shown separately; writes are never blindly replayed.
+- Failed reads link directly to repair evidence, candidate definitions, contract
+  changes, regression results and promotion/rejection reasons.
+- Security & metrics provides bounded paired baseline/reuse benchmarks with real
+  inference usage, initial learning cost, failures, median/p95 and raw exports.
+- [Hackathon readiness](docs/hackathon-readiness.md) maps the implementation to
+  official requirements and provides a real-provider acceptance command. Cloud
+  hosting, actual AI/vision runs and recorded submission assets remain pending.
