@@ -21,8 +21,8 @@ Open http://localhost:8080. Read the generated OPERATOR_PASSWORD in your local .
 do not commit it or share it in screenshots. The browser image must exist before
 execution. Migrations and bootstrap run as the `migrate` one-shot service.
 
-Check model availability using Vultr's authenticated `/v1/models` API or official
-console. Configure VULTR_CHAT_MODEL and optionally VULTR_VISION_MODEL from actual
+Check model availability using Vultr's public `/v1/models` API or official
+console. Catalog access does not authenticate your API key. Configure VULTR_CHAT_MODEL and optionally VULTR_VISION_MODEL from actual
 available identifiers. Blank settings produce an explicit unavailable error.
 
 ## Vultr
@@ -108,3 +108,41 @@ before recording a public AI demo. Inspect output rather than assuming it passed
 Official references: [Vultr inference](https://docs.vultr.com/products/compute/serverless-inference/provisioning),
 [Playwright Docker](https://playwright.dev/python/docs/docker),
 [Docker security](https://docs.docker.com/engine/security/).
+
+## Routine local startup on Windows
+
+After the initial image/network setup, run these commands from the repository root:
+
+```powershell
+powershell -File infra/scripts/local.ps1 -Action start
+powershell -File infra/scripts/local.ps1 -Action status
+powershell -File infra/scripts/local.ps1 -Action stop
+```
+
+The launcher derives the project directory, so moving or renaming the folder does
+not require editing a hardcoded path. It targets Ubuntu WSL by default; use
+`-Distribution YourDistro` if needed. Start uses existing images. Stop preserves
+databases and artifacts. This is not initial Docker installation or a firewall installer.
+
+## Provider readiness
+
+In Security & metrics, the Vultr connection panel shows missing settings and can
+fetch actual text model IDs. The explicit live test uses provider tokens and verifies
+one structured text request. It does not certify browser learning or vision.
+
+From the API container (or an activated local Python environment), run:
+
+```bash
+python -m guard.readiness
+python -m guard.readiness --catalog
+python -m guard.readiness --probe
+```
+
+The first command only reads configuration. The second fetches the public catalog.
+The third makes a real text call only when a key and catalog-listed model are configured.
+Exit codes: 0 configured/check succeeded, 1 provider check failed, 2 missing configuration.
+No command prints the API key. Restarting alone does not reload Compose env-file values;
+use `docker compose up -d --force-recreate api orchestrator` after editing .env.
+
+Provider reference: [official Vultr inference API](https://api.vultrinference.com/).
+The catalog is public; its availability alone is not evidence of authenticated inference.

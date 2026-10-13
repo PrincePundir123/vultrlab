@@ -25,3 +25,12 @@ Errors carry HTTP status and explanatory content. Request IDs are response heade
 The suggested prompt route inventory was consolidated: operation detail/version data
 is included in `/operations`; verification records are included in `/receipts` and
 job results. There are no decorative unimplemented endpoint aliases.
+
+## Provider setup (administrator only)
+
+- GET `/api/v1/system/provider`: missing setting names and configured model IDs; no secret values.
+- GET `/api/v1/system/models`: live public Vultr text catalog; no inference tokens used.
+- POST `/api/v1/system/inference-check`: CSRF-protected explicit text probe, with audit
+  measurements. Requires a configured key and a model present in the catalog. Uses
+  inference tokens. Success verifies that one structured text call, not vision or
+  browser learning. Provider failures are sanitized; no raw upstream error body is returned.

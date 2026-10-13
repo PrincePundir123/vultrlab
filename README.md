@@ -90,3 +90,9 @@ development/fallback layout are included; cloud deployment is not yet verified.
 Original source is MIT licensed. Dependencies retain their own licenses.
 
 See [completion and handover](docs/completion-checklist.md) for the requirement map and remaining live-provider/deployment steps.
+
+For an already-built Windows/Ubuntu WSL installation, run
+`powershell -File infra/scripts/local.ps1 -Action start` from this folder. Use
+`-Action status` to inspect services and `-Action stop` to stop them without deleting data.
+Security & metrics includes a provider setup panel; the explicit live inference
+test uses tokens and remains unavailable until you privately configure Vultr.

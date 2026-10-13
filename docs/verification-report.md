@@ -52,3 +52,22 @@ The final regression suite also covers expired-version renewal without rewriting
 history, failed renewal without promotion, canceled reads, and malformed provider
 response envelopes. Docker and production frontend images were rebuilt and the
 local services restarted with their existing data preserved. Readiness returned ok.
+
+## Provider setup and launcher follow-up (2026-10-13)
+
+- Backend suite: 45 passed, 3 optional local-browser tests skipped, 12.55 seconds.
+  The earlier 41-test run above included those actual-browser tests. Browser runtime
+  code did not change in this follow-up.
+- UI checks: recovery/revalidation and the new setup-panel test passed. The approval
+  test initially checked for its review button before operation data loaded; after
+  adding a data-loaded wait and unique request text, its rerun passed in 10.7 seconds.
+  The setup-panel error/missing-key checks explicitly use HTTP fixtures, not real AI.
+- Production frontend build passed locally and in Docker. Updated services are running.
+- Actual public Vultr catalog discovery succeeded and returned 13 text model IDs.
+  No authenticated inference or vision call was performed; key and model settings
+  remain missing. Catalog retrieval is not credential verification.
+- The WSL launcher passed syntax and actual status/start checks after replacing
+  fragile nested command quoting with a fixed shell entrypoint. Existing data was retained.
+- Provider checks are administrator-only; the billed text probe requires CSRF.
+  Focused tests cover missing configuration, malformed catalog, model mismatch,
+  configured-secret non-disclosure, and role/CSRF enforcement.
