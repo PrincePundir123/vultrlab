@@ -232,11 +232,16 @@ def learn(user: User = Depends(auth.current_user)):
 
 
 @app.post(prefix + "/operations/{name}/repair")
-def repair(name: str, user: User = Depends(auth.current_user)):
+def repair(name: str, source_job_id: str | None = None, user: User = Depends(auth.current_user)):
     auth.require_admin(user)
     if name != READ:
         raise HTTPException(422, "Automatic repair is limited to the read operation")
-    return enqueue(user, "repair", {})
+    if source_job_id:
+        with db() as s:
+            source = owned(s, Job, source_job_id, user)
+            if source.kind != "read" or source.state != "PORTAL_CHANGED":
+                raise HTTPException(409, "Repair source must be a failed read with confirmed portal change")
+    return enqueue(user, "repair", {"source_job_id": source_job_id})
 
 
 @app.post(prefix + "/operations/{name}/validate")

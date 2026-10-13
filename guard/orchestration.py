@@ -139,6 +139,11 @@ class Runtime:
     async def learn(self, repair=False):
         transition(READ, "REPAIRING" if repair else "LEARNING", "Operator requested workflow discovery")
         context = None
+        with db() as s:
+            op = s.get(Operation, READ)
+            previous = s.scalar(select(Version).where(Version.operation == READ, Version.number == op.active_version))
+        self.record("RECOVERY_STARTED", {"source_job_id": self.job.payload.get("source_job_id"),
+            "previous": {"number": previous.number, "definition": previous.definition, "contract": previous.contract} if previous else None})
         if repair:
             with db() as s:
                 old = s.scalar(select(Version).where(Version.operation == READ).order_by(Version.number.desc()))
@@ -153,6 +158,8 @@ class Runtime:
                                       digest=canonical_hash(workflow.model_dump()))
                     s.add(version)
                     s.commit()
+                self.record("CANDIDATE_VERSION", {"number": number, "definition": version.definition,
+                    "contract": version.contract, "digest": version.digest})
                 transition(READ, "TESTING", f"Testing immutable candidate v{number}")
                 if not await self.validate_candidate(workflow, version):
                     raise RuntimeError("CANDIDATE_FAILED_REGRESSION")
@@ -162,6 +169,7 @@ class Runtime:
                     op.active_version = number
                     s.commit()
                 transition(READ, "ACTIVE", f"Candidate v{number} passed regression and held-out cases")
+                self.record("CANDIDATE_PROMOTED", {"number": number, "reason": "All regression and held-out checks passed; write version still requires review"})
                 await self.install_write_candidate(workflow)
                 return {"status": "VERIFIED", "version": number, "provider": self.inference.provider_name}
             except Exception as exc:
