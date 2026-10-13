@@ -1,0 +1,2 @@
+import {Link} from 'react-router-dom';
+export function FirstTaskGuide(){return <section className="panel"><h2>Your first verified task</h2><ol><li>Open <Link to="/new">New task</Link> and select “Try sample orders” or upload your CSV.</li><li>Run the validated read operation. If it is unavailable, an operator must prepare it first.</li><li>Inspect delivery results, browser screenshots and independent checks on the execution page.</li></ol><p className="muted">All sample records are synthetic. Delivery requests require a separate operator approval.</p></section>}
