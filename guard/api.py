@@ -14,6 +14,8 @@ from pydantic import Field
 from sqlalchemy import select, update, func
 
 from guard import auth
+from guard.readiness import configuration_status, model_catalog, probe_inference
+from guard.inference import InferenceUnavailable
 from guard.bootstrap import bootstrap
 from guard.config import settings
 from guard.contracts import READ, WRITE, OrderInput, Strict, Workflow, PolicyError, canonical_hash, check_workflow
@@ -464,6 +466,33 @@ async def system(user: User = Depends(auth.current_user)):
     return {"worker_ready": worker, "inference_configured": bool(cfg.vultr_inference_api_key and cfg.vultr_chat_model),
             "vision_configured": bool(cfg.vultr_inference_api_key and cfg.vultr_vision_model), "synthetic": True,
             "deployment": "Configured runtime; cloud location not independently attested"}
+
+
+@app.get(prefix + "/system/provider")
+def provider_configuration(user: User = Depends(auth.current_user)):
+    auth.require_admin(user)
+    return configuration_status()
+
+
+@app.get(prefix + "/system/models")
+async def provider_models(user: User = Depends(auth.current_user)):
+    auth.require_admin(user)
+    try:
+        return await model_catalog()
+    except InferenceUnavailable as exc:
+        raise HTTPException(503, str(exc))
+
+
+@app.post(prefix + "/system/inference-check")
+async def provider_check(user: User = Depends(auth.current_user)):
+    auth.require_admin(user)
+    try:
+        result = await probe_inference()
+    except InferenceUnavailable as exc:
+        audit(user, "INFERENCE_PREFLIGHT_FAILED", {"reason": str(exc)})
+        raise HTTPException(503, str(exc))
+    audit(user, "INFERENCE_PREFLIGHT", result)
+    return result
 
 
 @app.get("/health/live")
