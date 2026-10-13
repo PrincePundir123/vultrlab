@@ -6,6 +6,7 @@ test('setup panel blocks unconfigured live calls and explains invalid API respon
   const env=readFileSync(resolve('../../.env'),'utf8');
   const password=env.split('\n').find(x=>x.startsWith('OPERATOR_PASSWORD='))!.split('=').slice(1).join('=').trim();
   await page.goto('/');
+  await page.getByLabel('Username',{exact:true}).fill('operator');
   await page.getByLabel('Password',{exact:true}).fill(password);
   await page.getByRole('button',{name:'Sign in',exact:true}).click();
   // Explicit HTTP fixtures test UI states without making billed provider requests.

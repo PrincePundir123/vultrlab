@@ -5,6 +5,7 @@ const env=readFileSync(resolve('../../.env'),'utf8');
 const password=env.split('\n').find(x=>x.startsWith('OPERATOR_PASSWORD='))!.split('=').slice(1).join('=').trim();
 test('operator can validate CSV, queue and cancel a task, and inspect operation readiness',async({page})=>{
   await page.goto('/');
+  await page.getByLabel('Username',{exact:true}).fill('operator');
   await page.getByLabel('Password',{exact:true}).fill(password);
   await page.getByRole('button',{name:'Sign in'}).click();
   await expect(page.getByRole('heading',{name:'Every action. Accounted for.'})).toBeVisible();
@@ -25,5 +26,5 @@ test('operator can validate CSV, queue and cancel a task, and inspect operation 
   await expect(page.getByRole('status')).toHaveText('Portal layout changed');
   await page.getByRole('button',{name:'Switch to version 1'}).click();
   await page.getByRole('button',{name:'Sign out'}).click();
-  await expect(page.getByRole('heading',{name:'Operator sign in'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Sign in'})).toBeVisible();
 });

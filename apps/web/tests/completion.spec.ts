@@ -7,7 +7,8 @@ test('revalidate, compare versions, reject stale CSV, recover expired session an
   const env=readFileSync(resolve('../../.env'),'utf8');
   const password=env.split('\n').find(x=>x.startsWith('OPERATOR_PASSWORD='))!.split('=').slice(1).join('=').trim();
   const login=async()=>{
-    await page.getByLabel('Password',{exact:true}).fill(password);
+    await page.getByLabel('Username',{exact:true}).fill('operator');
+  await page.getByLabel('Password',{exact:true}).fill(password);
     await page.getByRole('button',{name:'Sign in',exact:true}).click();
     await expect(page.getByRole('navigation')).toBeVisible();
   };
@@ -31,10 +32,10 @@ test('revalidate, compare versions, reject stale CSV, recover expired session an
   await expect(page.getByRole('button',{name:'Start verified execution'})).toBeDisabled();
   await context.clearCookies();
   await page.getByRole('navigation').getByRole('link',{name:'Verified results'}).click();
-  await expect(page.getByRole('heading',{name:'Operator sign in'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Sign in'})).toBeVisible();
   await login();
   await page.setViewportSize({width:390,height:844});
   await expect(page.getByRole('button',{name:'Sign out'})).toBeVisible();
   await page.getByRole('button',{name:'Sign out'}).click();
-  await expect(page.getByRole('heading',{name:'Operator sign in'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Sign in'})).toBeVisible();
 });
