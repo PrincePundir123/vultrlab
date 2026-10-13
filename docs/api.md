@@ -3,7 +3,7 @@
 FastAPI serves the detailed schema at `/openapi.json` and `/docs` on the private API
 listener. Public console traffic uses `/api/v1` through Caddy.
 
-- `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`
+- `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`
 - `POST /orders/upload`: multipart CSV, <=64 KiB, 1–20 unique IDs, ISO dates.
 - `POST /tasks`, `GET /tasks`, `GET /tasks/{id}`, `POST /tasks/{id}/cancel`
 - `GET /tasks/{id}/events`: SSE, event IDs and Last-Event-ID reconnect support.
@@ -34,3 +34,22 @@ job results. There are no decorative unimplemented endpoint aliases.
   measurements. Requires a configured key and a model present in the catalog. Uses
   inference tokens. Success verifies that one structured text call, not vision or
   browser learning. Provider failures are sanitized; no raw upstream error body is returned.
+
+## User registration and roles
+
+POST `/api/v1/auth/register` accepts only username and password. Usernames contain
+3–40 lowercase letters, numbers, underscores or hyphens and start with a letter.
+Passwords contain 12–200 characters. Duplicate names return 409. Invalid input,
+including a caller-supplied role, returns 422. Cross-origin requests return 403.
+Registration is limited to eight attempts per source in five minutes and creates
+an authenticated HttpOnly session with a CSRF token. The server fixes the role to `user`.
+
+- `user`: upload order CSVs, run existing read operations, cancel own tasks, inspect
+  own records/evidence/exports and view operation definitions.
+- `operator`: additionally prepare, approve and submit its own supplier requests.
+- `admin`: additionally learn/repair/review operations, run baseline discovery,
+  change scenarios and configure/test inference.
+
+Public users cannot opt into operator/admin roles. Mutations require session CSRF
+validation after registration. The shared synthetic portal is not a private supplier
+catalog per tenant; task histories and evidence are private per account.

@@ -71,3 +71,24 @@ local services restarted with their existing data preserved. Readiness returned 
 - Provider checks are administrator-only; the billed text probe requires CSRF.
   Focused tests cover missing configuration, malformed catalog, model mismatch,
   configured-secret non-disclosure, and role/CSRF enforcement.
+
+## Self-signup and user login (2026-10-13)
+
+The user explicitly requested self-signup, superseding the earlier operator-only
+login preference. New accounts receive the restricted `user` role. Operator writes
+and administrator controls remain protected in both the API and the UI.
+
+- Backend regression run: 49 passed, 3 optional browser tests skipped, 42.99 seconds.
+  Covered password hashing, login/logout, duplicate names, invalid input, origin
+  checks, role injection, signup throttling, private task access and operator restrictions.
+- Production frontend builds passed on Windows and in the Docker image.
+- Real Docker/Chrome UI acceptance: 3 passed in 1.1 minutes. A new user signed up,
+  executed a verified read task, logged out/in, and a second account was denied
+  access to that task. Existing operator approval/submission and recovery flows passed.
+- Screenshot of the actual restricted user workspace: screenshots/user-workspace.png.
+- Existing database records and operator credentials were preserved. No schema
+  change or new privileged account was required. Test-created users hold synthetic
+  records and randomly generated test passwords.
+
+These checks do not add live Vultr credentials, email verification, password recovery
+or enterprise tenant isolation. The shared supplier catalog remains synthetic.

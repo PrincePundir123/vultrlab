@@ -96,3 +96,14 @@ For an already-built Windows/Ubuntu WSL installation, run
 `-Action status` to inspect services and `-Action stop` to stop them without deleting data.
 Security & metrics includes a provider setup panel; the explicit live inference
 test uses tokens and remains unavailable until you privately configure Vultr.
+
+## User signup and login
+
+Open http://localhost:8080 and select **Create a new account**. Choose a lowercase
+username and a password of at least 12 characters, confirm it, and select **Create
+account**. Signup signs you in automatically; use **Sign out** and **Sign in** for
+later sessions. Operator accounts use the same sign-in form.
+
+New users can run read-only supplier checks and access their own task histories.
+Supplier submissions are limited to controlled operators; workflow administration
+remains admin-only. Signup does not grant paid inference or administrative access.

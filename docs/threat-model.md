@@ -31,8 +31,12 @@ Residual risks and limits:
 - Docker supervisor effectively has host administrative authority. Keep it private.
 - The network label is an installation assertion; run the network probes after host
   restart or firewall changes. Reapply the firewall script after reboot.
-- Portal data is synthetic and shared among controlled operators, not enterprise tenant
-  isolation. No public signup or guest write access is implemented.
+- Portal data is synthetic and shared across accounts, not enterprise tenant
+  isolation. Self-signup creates read-only users; supplier writes require a controlled
+  operator/admin account. Tasks, receipts and artifacts remain owner-restricted.
+- Signup accepts no role field, hashes passwords with Argon2, checks origins and
+  throttles attempts per connection source. No email verification, password recovery,
+  account-management UI or enterprise abuse prevention is claimed.
 - Real third-party credentials, sessions, CSRF handling and arbitrary web origins are
   explicitly unsupported. No claim of arbitrary-site login isolation is made.
 - Exact request interception is controlled-portal-specific. It is not a generic

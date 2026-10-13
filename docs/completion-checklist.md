@@ -1,6 +1,7 @@
 # Completion and handover
 
-Operator-only access remains intentional. No public signup endpoint is provided.
+Self-signup is available. New accounts receive the restricted user role; supplier
+submissions remain operator-only, and administrative controls remain admin-only.
 
 | Requirement | Implementation and evidence |
 | --- | --- |
