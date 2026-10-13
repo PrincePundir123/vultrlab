@@ -96,6 +96,18 @@ def login(body: Login, request: Request, response: Response):
     return auth.login(body.username, body.password, request, response)
 
 
+class Signup(Strict):
+    username: str = Field(min_length=3, max_length=40, pattern=r"^[a-z][a-z0-9_-]{2,39}$")
+    password: str = Field(min_length=12, max_length=200)
+
+
+@app.post(prefix + "/auth/register", status_code=201)
+def register(body: Signup, request: Request, response: Response):
+    if request.headers.get("origin") not in (None, settings().app_base_url.rstrip("/")):
+        raise HTTPException(403, "Origin not allowed")
+    return auth.register(body.username, body.password, request, response)
+
+
 @app.get(prefix + "/auth/me")
 def me(request: Request, user: User = Depends(auth.current_user)):
     with db() as s:
@@ -140,6 +152,8 @@ class TaskInput(Strict):
 
 @app.post(prefix + "/tasks")
 def create_task(body: TaskInput, user: User = Depends(auth.current_user)):
+    if body.mode == "baseline":
+        auth.require_admin(user)
     return enqueue(user, "read", body.model_dump())
 
 
@@ -263,6 +277,7 @@ class PrepareInput(Strict):
 
 @app.post(prefix + "/requests/prepare")
 async def prepare(body: PrepareInput, user: User = Depends(auth.current_user)):
+    auth.require_operator(user)
     truth = await portal_truth("/orders/" + body.order_id)
     if not truth["found"]:
         raise HTTPException(404, "Order does not exist")
@@ -295,6 +310,7 @@ class ApprovalInput(Strict):
 
 @app.post(prefix + "/requests/{draft_id}/approve")
 def approve(draft_id: str, body: ApprovalInput, user: User = Depends(auth.current_user)):
+    auth.require_operator(user)
     with db() as s:
         draft = owned(s, Draft, draft_id, user)
         if body.digest != draft.digest or canonical_hash(draft.snapshot) != draft.digest:
@@ -310,6 +326,7 @@ def approve(draft_id: str, body: ApprovalInput, user: User = Depends(auth.curren
 
 @app.post(prefix + "/requests/{draft_id}/reject")
 def reject(draft_id: str, user: User = Depends(auth.current_user)):
+    auth.require_operator(user)
     with db() as s:
         owned(s, Draft, draft_id, user)
         changed = s.execute(update(Draft).where(Draft.id == draft_id, Draft.state.in_(["AWAITING_APPROVAL", "APPROVED"]),
@@ -322,6 +339,7 @@ def reject(draft_id: str, user: User = Depends(auth.current_user)):
 
 @app.post(prefix + "/requests/{draft_id}/submit")
 def submit(draft_id: str, body: ApprovalInput, user: User = Depends(auth.current_user)):
+    auth.require_operator(user)
     try:
         version = active_version(WRITE)
     except ValueError as exc:
@@ -360,6 +378,7 @@ def artifact(artifact_id: str, user: User = Depends(auth.current_user)):
 
 @app.post(prefix + "/requests/{draft_id}/reconcile")
 def reconcile(draft_id: str, user: User = Depends(auth.current_user)):
+    auth.require_operator(user)
     with db() as s:
         draft = owned(s, Draft, draft_id, user)
         if draft.state != "OUTCOME_UNCERTAIN":
