@@ -60,6 +60,7 @@ async def execute(spec: SandboxSpec, origin: str, executable: str | None = None)
         await context.route_web_socket("**/*", lambda ws: ws.close())
         http_status = 200
         target = None
+        target_missing_before = False
         def response_seen(response):
             nonlocal http_status
             if response.request.is_navigation_request() and response.frame == page.main_frame:
@@ -71,6 +72,7 @@ async def execute(spec: SandboxSpec, origin: str, executable: str | None = None)
                 check_step(step, spec.operation, spec.approved)
                 begin = time.monotonic()
                 target = page.locator(f'[data-target="{step.target}"]') if step.target else None
+                target_missing_before = target is not None and await target.count() == 0
                 if step.action == "navigate":
                     await page.goto(origin + "/", wait_until="domcontentloaded")
                 elif step.action == "fill":
@@ -99,7 +101,7 @@ async def execute(spec: SandboxSpec, origin: str, executable: str | None = None)
             # Fixed source code only; never a model-controlled evaluate string.
             result["text"] = (await page.locator("body").inner_text())[:8000]
         except Exception as exc:
-            missing = isinstance(exc, BrowserTimeout) and target is not None and await target.count() == 0
+            missing = isinstance(exc, BrowserTimeout) and target_missing_before
             result["status"] = classify_failure(http_status, result["trace"], str(exc), missing,
                                                 isinstance(exc, BrowserTimeout))
             result["error"] = str(exc)[:1200]
