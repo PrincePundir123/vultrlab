@@ -280,6 +280,45 @@ class Runtime:
         self.record("VERIFICATION", checked)
         return checked
 
+    async def revalidate(self):
+        # Revalidation creates fresh evidence and a new immutable version. It must
+        # be able to inspect expired/quarantined definitions without executing them
+        # as approved business operations or silently extending their lifetime.
+        with db() as s:
+            op = s.get(Operation, READ)
+            if op.state not in ("ACTIVE", "QUARANTINED") or op.active_version is None:
+                raise PolicyError("NO_PREVIOUS_VERSION_TO_VALIDATE")
+            previous = s.scalar(select(Version).where(Version.operation == READ,
+                                                       Version.number == op.active_version))
+            if not previous or previous.digest != canonical_hash(previous.definition):
+                raise PolicyError("OPERATION_INTEGRITY_FAILED")
+            if previous.contract.get("allowed_origin") != settings().portal_base_url:
+                raise PolicyError("OPERATION_ORIGIN_CHANGED")
+            workflow = Workflow.model_validate(previous.definition)
+            check_workflow(workflow, READ)
+            number = (s.scalar(select(func.max(Version.number)).where(Version.operation == READ)) or 0) + 1
+            candidate = Version(operation=READ, number=number, definition=workflow.model_dump(),
+                contract={**contract(READ), "learning_provider": previous.contract.get("learning_provider", "unknown"),
+                          "revalidated_from": previous.number}, digest=canonical_hash(workflow.model_dump()))
+            s.add(candidate)
+            s.commit()
+        transition(READ, "TESTING", f"Revalidating v{previous.number} as immutable candidate v{number}")
+        transition(WRITE, "QUARANTINED", "Read revalidation requires fresh write review")
+        try:
+            if not await self.validate_candidate(workflow, candidate):
+                transition(READ, "QUARANTINED", "Revalidation failed; previous version retained")
+                return {"status": "VALIDATION_FAILED", "version": number}
+            self.checkpoint()
+            with db() as s:
+                s.get(Operation, READ).active_version = number
+                s.commit()
+            transition(READ, "ACTIVE", f"Revalidated candidate v{number} passed all cases")
+            await self.install_write_candidate(workflow)
+            return {"status": "VERIFIED", "version": number, "revalidated_from": previous.number}
+        except Exception:
+            transition(READ, "QUARANTINED", "Revalidation interrupted or failed")
+            raise
+
     async def process(self):
         if self.job.kind in ("learn", "repair"):
             return await self.learn(self.job.kind == "repair")
@@ -288,11 +327,7 @@ class Runtime:
         if self.job.kind in ("submit", "reconcile"):
             return await self.submit(self.job.kind == "reconcile")
         if self.job.kind == "validate":
-            version = active_version(READ)
-            passed = await self.validate_candidate(Workflow.model_validate(version.definition), version)
-            if not passed:
-                transition(READ, "QUARANTINED", "Revalidation failed")
-            return {"status": "VERIFIED" if passed else "VALIDATION_FAILED"}
+            return await self.revalidate()
         if self.job.kind == "containment":
             return await self.run(Workflow(steps=[Step(action="navigate")]), {"order_id": "ORD-101"}, mode="containment")
         raise ValueError("UNKNOWN_JOB_KIND")
@@ -341,6 +376,8 @@ async def process_claimed(job: Job):
         state = result["status"]
     except Exception as exc:
         state = "REJECTED_BY_POLICY" if isinstance(exc, PolicyError) else "OUTCOME_UNCERTAIN" if job.kind in ("submit", "reconcile") else "FAILED"
+        if str(exc) == "CANCELED" and job.kind not in ("submit", "reconcile"):
+            state = "CANCELED"
         result = {"status": state, "reason": str(exc)[:500] or type(exc).__name__}
         if isinstance(exc, PolicyError):
             with db() as s:

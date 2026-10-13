@@ -88,3 +88,5 @@ development/fallback layout are included; cloud deployment is not yet verified.
 - [Limitations](docs/limitations.md)
 
 Original source is MIT licensed. Dependencies retain their own licenses.
+
+See [completion and handover](docs/completion-checklist.md) for the requirement map and remaining live-provider/deployment steps.

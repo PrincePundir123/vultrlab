@@ -43,10 +43,10 @@ class VultrInference:
                 self.record("INFERENCE", {"provider": "Vultr", "model": model, "usage": data.get("usage"),
                             "duration_ms": round((time.monotonic() - started) * 1000), "attempt": attempt + 1})
                 content = data["choices"][0]["message"]["content"]
-                if len(content) > 16000:
+                if not isinstance(content, str) or len(content) > 16000:
                     raise ValueError("Inference output exceeds limit")
                 return schema.model_validate_json(content)
-            except (httpx.HTTPError, ValueError, KeyError, ValidationError) as exc:
+            except (httpx.HTTPError, ValueError, KeyError, TypeError, IndexError, AttributeError, ValidationError) as exc:
                 self.record("INFERENCE_ERROR", {"type": type(exc).__name__, "attempt": attempt + 1})
                 if attempt == 1:
                     raise InferenceUnavailable("Vultr inference failed or returned invalid structured output") from exc

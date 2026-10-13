@@ -203,6 +203,7 @@ def operations(user: User = Depends(auth.current_user)):
             output.append({"name": op.name, "state": op.state, "active_version": op.active_version,
                 "history": op.history, "versions": [{"id": v.id, "number": v.number, "definition": v.definition,
                     "contract": v.contract, "digest": v.digest, "created": v.created,
+                    "expires": v.created + v.contract.get("valid_for_seconds", 0),
                     "validations": [{"passed": t.passed, "details": t.details} for t in
                         s.scalars(select(Validation).where(Validation.version_id == v.id))]} for v in versions]})
         return output
@@ -461,7 +462,7 @@ async def system(user: User = Depends(auth.current_user)):
     except httpx.HTTPError:
         pass
     return {"worker_ready": worker, "inference_configured": bool(cfg.vultr_inference_api_key and cfg.vultr_chat_model),
-            "vision_configured": bool(cfg.vultr_vision_model), "synthetic": True,
+            "vision_configured": bool(cfg.vultr_inference_api_key and cfg.vultr_vision_model), "synthetic": True,
             "deployment": "Configured runtime; cloud location not independently attested"}
 
 

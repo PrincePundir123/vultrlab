@@ -1,6 +1,7 @@
 # Development-only refresh after the service dependency image has already built.
 FROM skg-service:local
 WORKDIR /app
+ENV PYTHONPATH=/app
 USER root
 RUN mkdir -p /data/artifacts && chown 10001:10001 /data/artifacts
 COPY guard guard

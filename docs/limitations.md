@@ -11,7 +11,7 @@ Implemented choices narrower than the full aspirational prompt:
 - Local/single-VM overlay shares a kernel; preferred two-VM resources are supplied
   but cross-VM Vultr deployment is externally unverified.
 - Read-only AI learning and automatic repair. Write steps use reviewed fixed composition.
-- Basic version history; no sophisticated visual diff editor or MCP server.
+- Immutable version history and field-by-field workflow/contract comparison; no visual workflow editor or MCP server.
 - Metrics record actual runs. Controlled comparative benchmark conclusions remain pending.
 - Model summaries are not necessary for completion; UI shows observed events and
   deterministic explanations instead of adding an extra explanation-agent call.

@@ -32,3 +32,14 @@ Approval also includes a hash of the exact permission contract.
 
 The independent verifier checks exact persisted fields and evidence presence. The
 optional vision observation is recorded separately, with explicit unavailable state.
+
+## Revalidation and expiration
+
+Validate can inspect the previous active definition even when it has expired or
+is quarantined. It copies that definition into a new immutable candidate with the
+current permission contract, then runs the full regression library. Only a passing
+candidate becomes active. The prior version and failed candidates remain unchanged.
+Writes are quarantined during revalidation and require review of the newly composed
+write version afterward; old approvals cannot authorize the new version. Comparison
+in the operation library displays changed workflow and contract fields without
+activating either version.
