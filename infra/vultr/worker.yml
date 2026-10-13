@@ -1,0 +1,42 @@
+# Run with --project-directory . --env-file .env.worker
+name: skg-worker
+services:
+  worker:
+    image: skg-service:local
+    build: {context: ., dockerfile: infra/docker/service.Dockerfile}
+    user: root
+    command: [uvicorn, worker.app:app, --host, 0.0.0.0, --port, "8092"]
+    environment:
+      WORKER_SHARED_AUTH_SECRET: ${WORKER_SHARED_AUTH_SECRET:?Required}
+      PORTAL_BASE_URL: http://172.30.90.2:8090
+      SANDBOX_NETWORK: skg-execution
+      SANDBOX_IMAGE: skg-browser:local
+    ports: ["${WORKER_PRIVATE_IP:?Required}:8092:8092"]
+    volumes: [/var/run/docker.sock:/var/run/docker.sock]
+    networks: [management]
+    restart: unless-stopped
+  portal:
+    image: skg-service:local
+    command: [uvicorn, portal.app:app, --host, 0.0.0.0, --port, "8090"]
+    environment:
+      PORTAL_DATABASE_URL: sqlite:////data/portal.db
+    volumes: [portal:/data]
+    networks:
+      execution: {ipv4_address: 172.30.90.2}
+    restart: unless-stopped
+  portal-admin:
+    image: skg-service:local
+    command: [uvicorn, portal.app:admin, --host, 0.0.0.0, --port, "8091"]
+    environment:
+      PORTAL_DATABASE_URL: sqlite:////data/portal.db
+      PORTAL_ADMIN_SECRET: ${PORTAL_ADMIN_SECRET:?Required}
+    ports: ["${WORKER_PRIVATE_IP:?Required}:8091:8091"]
+    volumes: [portal:/data]
+    networks: [management]
+    depends_on: [portal]
+    restart: unless-stopped
+volumes:
+  portal:
+networks:
+  management:
+  execution: {external: true, name: skg-execution}

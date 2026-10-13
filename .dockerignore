@@ -1,0 +1,11 @@
+.venv
+.env
+.env.worker
+.git
+**/node_modules
+**/__pycache__
+**/dist
+artifacts
+test-results
+*.db
+infra/tools

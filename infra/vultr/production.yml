@@ -1,0 +1,16 @@
+# Overlay: docker compose -f docker-compose.yml -f infra/vultr/production.yml up -d
+services:
+  tls:
+    image: caddy:2-alpine
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:?Set public DNS name}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./infra/vultr/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [control]
+    restart: unless-stopped
+volumes:
+  caddy_data:
+  caddy_config:

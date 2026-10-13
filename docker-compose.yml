@@ -1,0 +1,91 @@
+name: skeleton-key-guard
+x-app: &app
+  build:
+    context: .
+    dockerfile: infra/docker/service.Dockerfile
+  image: skg-service:local
+  env_file: .env
+  restart: unless-stopped
+  networks: [control]
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: guard
+      POSTGRES_USER: guard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes: [database:/var/lib/postgresql/data]
+    networks: [control]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U guard"]
+      interval: 5s
+      retries: 20
+  migrate:
+    <<: *app
+    restart: "no"
+    command: [sh, -c, "alembic upgrade head && python -m guard.bootstrap"]
+    depends_on:
+      db: {condition: service_healthy}
+  api:
+    <<: *app
+    volumes: [artifacts:/data/artifacts]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  orchestrator:
+    <<: *app
+    command: [python, -m, guard.orchestration]
+    volumes: [artifacts:/data/artifacts]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/service.Dockerfile
+    image: skg-service:local
+    user: root
+    command: [uvicorn, worker.app:app, --host, 0.0.0.0, --port, "8092"]
+    environment:
+      WORKER_SHARED_AUTH_SECRET: ${WORKER_SHARED_AUTH_SECRET}
+      PORTAL_BASE_URL: http://172.30.90.2:8090
+      SANDBOX_NETWORK: skg-execution
+      SANDBOX_IMAGE: skg-browser:local
+    volumes: [/var/run/docker.sock:/var/run/docker.sock]
+    networks: [control]
+    restart: unless-stopped
+  portal:
+    image: skg-service:local
+    command: [uvicorn, portal.app:app, --host, 0.0.0.0, --port, "8090"]
+    environment:
+      PORTAL_DATABASE_URL: sqlite:////data/portal.db
+    volumes: [portal:/data]
+    networks:
+      execution:
+        ipv4_address: 172.30.90.2
+    restart: unless-stopped
+  portal-admin:
+    image: skg-service:local
+    command: [uvicorn, portal.app:admin, --host, 0.0.0.0, --port, "8091"]
+    environment:
+      PORTAL_DATABASE_URL: sqlite:////data/portal.db
+      PORTAL_ADMIN_SECRET: ${PORTAL_ADMIN_SECRET}
+    volumes: [portal:/data]
+    networks: [control]
+    depends_on: [portal]
+    restart: unless-stopped
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on: [api]
+    networks: [control]
+    restart: unless-stopped
+volumes:
+  database:
+  portal:
+  artifacts:
+networks:
+  control:
+  execution:
+    external: true
+    name: skg-execution

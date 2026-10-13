@@ -1,0 +1,39 @@
+{
+  "scope": "Real Docker supervisor/resource/network probes; not browser workflow acceptance",
+  "results": [
+    {
+      "test": "supervisor_deadline",
+      "status": "SANDBOX_TERMINATED",
+      "reason": "DEADLINE",
+      "screenshots": [],
+      "trace": [],
+      "sandbox": {
+        "id": "0c5b9570ee2e743f6b2d9422d51ace9412ed232f3bffe2547f31877621e12304",
+        "startup_ms": 213,
+        "deadline_seconds": 8,
+        "memory_mb": 1536,
+        "cpus": 1
+      },
+      "cleanup": true,
+      "total_ms": 8580
+    },
+    {
+      "test": "network_boundary",
+      "portal_host_metadata_public_admin": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "test": "memory_limit",
+      "oom_killed": true
+    },
+    {
+      "test": "orphan_cleanup",
+      "removed": true
+    }
+  ]
+}

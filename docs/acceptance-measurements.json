@@ -1,0 +1,47 @@
+{
+  "inference": "DETERMINISTIC_TEST_FIXTURE; NOT VULTR",
+  "measurements": [
+    {
+      "kind": "learn",
+      "duration_ms": 28854,
+      "status": "VERIFIED",
+      "inference": "TEST_FIXTURE_NOT_AI"
+    },
+    {
+      "kind": "read",
+      "duration_ms": 8936,
+      "status": "VERIFIED",
+      "inference": "none"
+    },
+    {
+      "kind": "submit",
+      "duration_ms": 3351,
+      "status": "VERIFIED",
+      "inference": "none"
+    },
+    {
+      "kind": "read",
+      "duration_ms": 7723,
+      "status": "PORTAL_CHANGED",
+      "inference": "none"
+    },
+    {
+      "kind": "repair",
+      "duration_ms": 29581,
+      "status": "VERIFIED",
+      "inference": "TEST_FIXTURE_NOT_AI"
+    },
+    {
+      "kind": "read",
+      "duration_ms": 10005,
+      "status": "VERIFIED",
+      "inference": "none"
+    },
+    {
+      "kind": "containment",
+      "duration_ms": 8828,
+      "status": "SANDBOX_TERMINATED",
+      "inference": "none"
+    }
+  ]
+}
