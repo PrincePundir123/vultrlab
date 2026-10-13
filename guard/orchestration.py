@@ -192,15 +192,30 @@ class Runtime:
         workflow = await self.discover() if baseline else Workflow.model_validate(version.definition)
         rows = []
         for row in self.job.payload["orders"]:
-            observed = await self.run(workflow, {"order_id": row["order_id"]})
-            truth = await portal_truth("/orders/" + row["order_id"])
-            checked = verify_read(row["order_id"], observed, truth)
+            observed = {}
+            for attempt in range(2):
+                try:
+                    observed = await self.run(workflow, {"order_id": row["order_id"]})
+                    truth = await portal_truth("/orders/" + row["order_id"]) if observed.get("status") == "OBSERVED" else {}
+                    checked = verify_read(row["order_id"], observed, truth)
+                except httpx.HTTPError as exc:
+                    status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else 0
+                    checked = {"status": "ACCESS_DENIED" if status in (401, 403) else "TRANSIENT_ERROR",
+                               "verified": False, "reason": "Transport or independent verification unavailable"}
+                if checked["status"] != "TRANSIENT_ERROR" or attempt == 1:
+                    break
+                self.record("READ_RETRY", {"order_id": row["order_id"], "attempt": attempt + 2,
+                                           "reason": checked["status"]})
+                self.checkpoint()
             if not checked["verified"]:
-                if not baseline:
+                changed = checked["status"] in ("PORTAL_CHANGED", "VALIDATION_FAILED")
+                if not baseline and changed:
                     transition(READ, "QUARANTINED", "Fresh execution failed required invariant")
                     transition(WRITE, "QUARANTINED", "Shared portal assumptions changed")
                 self.record("VERIFICATION", checked)
-                return {"status": "PORTAL_CHANGED", "rows": rows, "failure": checked}
+                return {"status": "PORTAL_CHANGED" if changed else checked["status"], "rows": rows,
+                        "failure": checked, "version": version.number if version else None,
+                        "artifacts": observed.get("artifact_ids", [])}
             if checked.get("order"):
                 order = checked["order"]
                 checked["classification"] = classify(row["expected_delivery"], order["arrival"], order["status"])

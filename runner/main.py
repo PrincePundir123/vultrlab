@@ -7,9 +7,21 @@ import sys
 import time
 from urllib.parse import parse_qs, urlsplit
 
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, TimeoutError as BrowserTimeout
 
 from guard.contracts import SandboxSpec, WRITE, check_step, check_workflow, same_origin, validate_inputs
+
+
+def classify_failure(status, trace, message, missing=False, timed_out=False):
+    if any(item.get("kind") == "POLICY_BLOCK" for item in trace):
+        return "REJECTED_BY_POLICY"
+    if status in (401, 403):
+        return "ACCESS_DENIED"
+    if status == 429 or status >= 500 or "net::ERR_" in message:
+        return "TRANSIENT_ERROR"
+    if missing:
+        return "PORTAL_CHANGED"
+    return "TRANSIENT_ERROR" if timed_out else "EXECUTION_FAILED"
 
 
 async def execute(spec: SandboxSpec, origin: str, executable: str | None = None) -> dict:
@@ -46,6 +58,13 @@ async def execute(spec: SandboxSpec, origin: str, executable: str | None = None)
 
         await context.route("**/*", route_handler)
         await context.route_web_socket("**/*", lambda ws: ws.close())
+        http_status = 200
+        target = None
+        def response_seen(response):
+            nonlocal http_status
+            if response.request.is_navigation_request() and response.frame == page.main_frame:
+                http_status = response.status
+        page.on("response", response_seen)
         try:
             await page.goto(origin, wait_until="domcontentloaded", timeout=10000)
             for step in spec.workflow.steps:
@@ -78,7 +97,9 @@ async def execute(spec: SandboxSpec, origin: str, executable: str | None = None)
             # Fixed source code only; never a model-controlled evaluate string.
             result["text"] = (await page.locator("body").inner_text())[:8000]
         except Exception as exc:
-            result["status"] = "PORTAL_CHANGED"
+            missing = isinstance(exc, BrowserTimeout) and target is not None and await target.count() == 0
+            result["status"] = classify_failure(http_status, result["trace"], str(exc), missing,
+                                                isinstance(exc, BrowserTimeout))
             result["error"] = str(exc)[:1200]
         finally:
             try:
