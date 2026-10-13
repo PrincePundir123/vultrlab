@@ -157,6 +157,19 @@ def create_task(body: TaskInput, user: User = Depends(auth.current_user)):
     return enqueue(user, "read", body.model_dump())
 
 
+class BenchmarkInput(Strict):
+    pairs: int = Field(default=3, ge=2, le=10)
+    orders: list[OrderInput] = Field(min_length=1, max_length=3)
+
+
+@app.post(prefix + "/benchmarks")
+def benchmark(body: BenchmarkInput, user: User = Depends(auth.current_user)):
+    auth.require_admin(user)
+    if not settings().vultr_inference_api_key or not settings().vultr_chat_model:
+        raise HTTPException(409, "Configure real Vultr inference before running a paid benchmark")
+    return enqueue(user, "benchmark", body.model_dump())
+
+
 @app.get(prefix + "/tasks")
 def tasks(offset: int = 0, user: User = Depends(auth.current_user)):
     with db() as s:

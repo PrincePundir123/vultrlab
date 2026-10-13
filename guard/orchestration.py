@@ -343,6 +343,9 @@ class Runtime:
             raise
 
     async def process(self):
+        if self.job.kind == "benchmark":
+            from guard.benchmark import run_benchmark
+            return await run_benchmark(self)
         if self.job.kind in ("learn", "repair"):
             return await self.learn(self.job.kind == "repair")
         if self.job.kind == "read":
@@ -395,7 +398,7 @@ async def process_claimed(job: Job):
     beat = asyncio.create_task(heartbeat())
     event(job.id, "JOB_STARTED", {"kind": job.kind})
     try:
-        result = await asyncio.wait_for(Runtime(job).process(), timeout=settings().max_job_seconds)
+        result = await asyncio.wait_for(Runtime(job).process(), timeout=3600 if job.kind == "benchmark" else settings().max_job_seconds)
         state = result["status"]
     except Exception as exc:
         state = "REJECTED_BY_POLICY" if isinstance(exc, PolicyError) else "OUTCOME_UNCERTAIN" if job.kind in ("submit", "reconcile") else "FAILED"
